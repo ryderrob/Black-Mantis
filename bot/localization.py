@@ -76,6 +76,19 @@ translations = {
         "class_mage_name": "Mage", "class_mage_desc": "Wielder of arcane energies.",
         "class_rogue_name": "Rogue", "class_rogue_desc": "Stealthy and skilled in subterfuge.",
         "class_cleric_name": "Cleric", "class_cleric_desc": "Divine agent, healer, and protector.",
+
+        # Gemini GM Fallbacks & Messages
+        "gemini_fallback_unavailable": "The GM's magical link is currently severed. Please try again later.",
+        "gm_session_not_active": "There is no active game session here for the GM to respond to.",
+        "gemini_rate_limit_fallback": "The ancient magics are strained and need a moment to recover (Rate limit reached). Please try your action again shortly.",
+        "gemini_api_error_fallback": "A flicker in the arcane energies disrupts the GM's focus. (API Error). Please try again.",
+        "gemini_unexpected_error_fallback": "An unforeseen magical disturbance has occurred! The GM is momentarily unavailable. Please try again.",
+        "gemini_empty_response": "The GM ponders your action but remains silent for now... Perhaps try rephrasing or a different action?",
+        "gemini_response_blocked": "The GM's thoughts were mysteriously blocked. Perhaps try a different approach?",
+        "explore_no_active_session": "You need an active game session to explore. Use /startgame first.",
+        "explore_no_character": "You need a character to explore. Create one via /startgame.",
+        "action_no_active_session": "Player actions can only be taken in an active game session. Use /startgame to begin.",
+        "action_no_character": "You need a character to perform actions. Create one using /startgame.",
     },
     "ru": {
         # General
@@ -143,6 +156,19 @@ translations = {
         "class_mage_name": "Маг", "class_mage_desc": "Повелитель тайных энергий.",
         "class_rogue_name": "Разбойник", "class_rogue_desc": "Скрытный и искусный в уловках.",
         "class_cleric_name": "Клирик", "class_cleric_desc": "Божественный агент, целитель и защитник.",
+
+        # Gemini GM Fallbacks & Messages
+        "gemini_fallback_unavailable": "Магическая связь с ГМ в данный момент разорвана. Пожалуйста, попробуйте позже.",
+        "gm_session_not_active": "Здесь нет активной игровой сессии, чтобы ГМ мог ответить.",
+        "gemini_rate_limit_fallback": "Древняя магия истощена и требует времени на восстановление (достигнут лимит запросов). Пожалуйста, повторите ваше действие чуть позже.",
+        "gemini_api_error_fallback": "Колебание в магических энергиях нарушает концентрацию ГМ (Ошибка API). Пожалуйста, попробуйте снова.",
+        "gemini_unexpected_error_fallback": "Произошло непредвиденное магическое возмущение! ГМ временно недоступен. Пожалуйста, попробуйте снова.",
+        "gemini_empty_response": "ГМ обдумывает ваше действие, но пока молчит... Может, попробуете перефразировать или совершить другое действие?",
+        "gemini_response_blocked": "Мысли ГМ были таинственным образом заблокированы. Возможно, стоит попробовать другой подход?",
+        "explore_no_active_session": "Вам нужна активная игровая сессия для исследования. Сначала используйте /startgame.",
+        "explore_no_character": "Вам нужен персонаж для исследования. Создайте его через /startgame.",
+        "action_no_active_session": "Действия игрока могут совершаться только в активной игровой сессии. Используйте /startgame, чтобы начать.",
+        "action_no_character": "Вам нужен персонаж для совершения действий. Создайте его с помощью /startgame.",
     }
 }
 

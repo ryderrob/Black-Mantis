@@ -8,9 +8,10 @@ from telegram.constants import ParseMode
 
 from .db import engine as db_engine, Base as db_Base
 from .models import User, Character, GameSession # Ensure models are imported so Base knows about them
-from .handlers import command_handlers, error_handler # command_handlers is a list
+from .handlers import command_handlers, error_handler, player_action_handler # Added player_action_handler
 from .character_creation import character_creation_handler # This is a ConversationHandler
 from .utils import get_logger
+from .gemini_gm import GEMINI_API_KEY # To conditionally add GM handlers
 
 # Set up logging
 logger = get_logger(__name__) # Use the utility for consistency
@@ -43,6 +44,13 @@ def main() -> None:
 
     # Register the character creation conversation handler
     application.add_handler(character_creation_handler)
+
+    # Register GM related handlers only if API key is present
+    if GEMINI_API_KEY:
+        application.add_handler(player_action_handler)
+        logger.info("Gemini GM MessageHandler for player actions registered.")
+    else:
+        logger.warning("GEMINI_API_KEY not found. GM MessageHandler for player actions will NOT be registered. /explore command will also notify user.")
 
     # Register error handler
     application.add_error_handler(error_handler)

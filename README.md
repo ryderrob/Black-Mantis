@@ -17,7 +17,7 @@ There are two ways to set up the bot:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/ryderrob/Black-Mantis.git # Replace <repository_url> with the actual URL
+    git clone <repository_url> # Replace <repository_url> with the actual URL
     cd telegram_rpg_bot # Or your chosen directory name
     ```
 
@@ -39,14 +39,18 @@ There are two ways to set up the bot:
 
 4.  **Configure Environment Variables:**
     *   Open the `.env` file created by the script (or manually).
-    *   Add your Telegram Bot Token:
+    *   **Add your Telegram Bot Token:**
         *   Get a token by talking to [BotFather](https://t.me/BotFather) on Telegram.
-        *   Replace `YOUR_TELEGRAM_BOT_TOKEN_HERE` (or ensure the line is correctly set) with your actual token.
+        *   Set the `TELEGRAM_BOT_TOKEN` variable.
+    *   **Add your Google Gemini API Key:**
+        *   Go to [Google AI Studio](https://makersuite.google.com/app/apikey) to create an API key.
+        *   Set the `GEMINI_API_KEY` variable in the `.env` file.
         ```env
         TELEGRAM_BOT_TOKEN="YOUR_ACTUAL_TELEGRAM_BOT_TOKEN"
         DATABASE_URL="sqlite:///./rpg_bot.db" # You can change this if you prefer another DB location
+        GEMINI_API_KEY="YOUR_ACTUAL_GEMINI_API_KEY"
         ```
-    *   **This step is crucial for the bot to connect to Telegram.**
+    *   **These steps are crucial for the bot to connect to Telegram and for the GM features to work.**
 
 5.  **Run the bot:**
     ```bash
@@ -111,6 +115,18 @@ telegram_rpg_bot/
 *   `/mycharacter` - Displays your current character's sheet.
 *   `/roll <XdY[+Z]>` - Rolls dice (e.g., `/roll d20`, `/roll 2d6+3`).
 *   `/lang <language_code>` - Changes the bot's language (e.g., `/lang ru` for Russian, `/lang en` for English). Currently, this is a global setting for the bot instance.
+*   `/explore` - Asks the AI Game Master to describe the current scene or location.
+
+**AI Game Master (GM) Interaction:**
+*   When a game is active (`/startgame`), typing regular text messages (not commands) in the group chat will be interpreted as player actions. The AI GM (powered by Google Gemini) will respond to these actions, narrating the story and consequences.
+
+## AI Game Master (Gemini Integration)
+
+This bot uses Google's Gemini API to provide dynamic Game Master capabilities. To use these features, you must:
+1.  Obtain a Gemini API Key from [Google AI Studio](https://makersuite.google.com/app/apikey).
+2.  Set this key as the `GEMINI_API_KEY` environment variable in your `.env` file.
+
+If the `GEMINI_API_KEY` is not provided or is invalid, the GM-related features (`/explore` and responding to player actions) will be disabled, and the bot will inform you.
 
 ## Language Support
 

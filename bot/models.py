@@ -68,6 +68,10 @@ class GameSession(Base):
     is_active = Column(Boolean, default=False)
     gm_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Optional Game Master
 
+    # Store conversation history for Gemini AI (list of dicts)
+    # Each dict: {'role': 'user' or 'model', 'parts': [{'text': 'message content'}]}
+    conversation_history = Column(JSON, nullable=True, default=lambda: [])
+
     # characters = relationship("Character", back_populates="game_session") # If characters are part of a session
 
     def __repr__(self):

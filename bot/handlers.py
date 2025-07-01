@@ -3,14 +3,99 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from sqlalchemy.orm import Session
 
-from .db import get_db
+from telegram.ext import MessageHandler, filters # Added filters for MessageHandler
+
+from .db import get_db, SessionLocal # Added SessionLocal for direct use if needed
 from .models import User, Character, GameSession
 from .utils import get_logger, format_character_sheet
 from .game_logic import handle_roll_command # Import the specific handler
 from .localization import _, set_language, get_current_language, SUPPORTED_LANGUAGES # Localization
+from .gemini_gm import generate_gm_response, GEMINI_API_KEY # Import Gemini GM function and API key status
 # from .character_creation import start_character_creation # This will be handled by ConversationHandler entry point
 
 logger = get_logger(__name__)
+
+
+# --- GM Integration Handlers ---
+async def explore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles the /explore command, triggering a GM narration of the current scene."""
+    if not GEMINI_API_KEY:
+        await update.message.reply_text(_("gemini_fallback_unavailable"))
+        return
+
+    user = update.effective_user
+    chat = update.effective_chat
+
+    if not chat.type == "group" and not chat.type == "supergroup":
+        await update.message.reply_text(_("startgame_group_only")) # Re-use existing key, context is similar
+        return
+
+    db_session: SessionLocal = next(get_db())
+    try:
+        game_session = db_session.query(GameSession).filter(GameSession.chat_id == chat.id, GameSession.is_active == True).first()
+        if not game_session:
+            await update.message.reply_text(_("explore_no_active_session"))
+            return
+
+        player_character = db_session.query(Character).filter(Character.user_id == user.id).first()
+        if not player_character:
+            await update.message.reply_text(_("explore_no_character"))
+            return
+
+        # Notify that GM is thinking
+        thinking_message = await update.message.reply_text("The GM ponders the weave of fate...")
+
+        gm_response = await generate_gm_response(chat_id=chat.id, acting_user_id=user.id, is_explore_action=True)
+
+        if thinking_message: # Edit the "thinking" message with the actual response
+            await context.bot.edit_message_text(chat_id=chat.id, message_id=thinking_message.message_id, text=gm_response)
+        else: # Fallback if somehow thinking_message wasn't sent
+            await update.message.reply_text(gm_response)
+
+    finally:
+        db_session.close()
+
+
+async def handle_player_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles regular text messages as player actions in an active game."""
+    if not GEMINI_API_KEY:
+        # Silently ignore if Gemini is not configured, or reply if direct feedback is preferred
+        # logger.debug("Gemini not configured, ignoring potential player action.")
+        return
+
+    user = update.effective_user
+    chat = update.effective_chat
+    message_text = update.message.text
+
+    if not chat.type == "group" and not chat.type == "supergroup":
+        return # Player actions are for group chats
+
+    db_session: SessionLocal = next(get_db())
+    try:
+        game_session = db_session.query(GameSession).filter(GameSession.chat_id == chat.id, GameSession.is_active == True).first()
+        if not game_session:
+            # logger.debug(f"Player action ignored: No active game session in chat {chat.id}")
+            return # No active game
+
+        player_character = db_session.query(Character).filter(Character.user_id == user.id).first()
+        if not player_character:
+            # logger.debug(f"Player action ignored: User {user.id} has no character in chat {chat.id}")
+            return # User has no character
+
+        # Optional: Add a small delay or "GM is thinking" message if responses are slow
+        # thinking_message = await update.message.reply_text("The GM considers your action...")
+
+        gm_response = await generate_gm_response(chat_id=chat.id, acting_user_id=user.id, player_action_text=message_text)
+
+        # if thinking_message:
+        #    await context.bot.edit_message_text(chat_id=chat.id, message_id=thinking_message.message_id, text=gm_response)
+        # else:
+        await update.message.reply_text(gm_response)
+
+    finally:
+        db_session.close()
+
+# --- End GM Integration Handlers ---
 
 
 async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -166,9 +251,23 @@ command_handlers = [
     CommandHandler("start", start_command),
     CommandHandler("startgame", start_game_command),
     CommandHandler("mycharacter", my_character_command),
-    CommandHandler("roll", handle_roll_command), # Using the imported handler directly
-    CommandHandler("lang", lang_command), # Added language command
+    CommandHandler("roll", handle_roll_command),
+    CommandHandler("lang", lang_command),
+    CommandHandler("explore", explore_command), # Added explore command
 ]
+
+# MessageHandler for player actions (GM interaction)
+# Ensure this handler has a group that doesn't conflict with ConversationHandler if it also uses MessageHandlers.
+# A common approach is to use different groups or ensure ConversationHandler entry points are more specific.
+# For now, adding it directly. If conflicts arise, adjust handler groups.
+# The priority should be such that it doesn't override command handlers.
+# Default group is 0. CommandHandlers are typically in group 0.
+# ConversationHandler states might also be in group 0.
+# To ensure commands are processed first, and then this, it might be fine.
+# If it captures text meant for ConversationHandler, we might need to make its filters more specific
+# or manage handler groups. For now, `~filters.COMMAND` should prevent it from hijacking commands.
+player_action_handler = MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.GROUPS, handle_player_action)
+
 
 # CallbackQueryHandlers that are not part of a ConversationHandler can be listed here
 # For now, character creation ones are managed by the ConversationHandler itself.
