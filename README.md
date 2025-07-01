@@ -17,7 +17,7 @@ There are two ways to set up the bot:
 
 1.  **Clone the repository:**
     ```bash
-    [git clone https://github.com/ryderrob/Black-Mantis.git # Replace <repository_url> with the actual URL
+    git clone https://github.com/ryderrob/Black-Mantis.git # Replace <repository_url> with the actual URL
     cd telegram_rpg_bot # Or your chosen directory name
     ```
 
