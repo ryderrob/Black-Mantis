@@ -3,10 +3,11 @@ import random
 import re
 from .utils import get_logger
 from .localization import _ # Localization
+from typing import Optional
 
 logger = get_logger(__name__)
 
-def parse_dice_roll(dice_notation: str) -> tuple[int, int, int] | None:
+def parse_dice_roll(dice_notation: str) -> Optional[tuple[int, int, int]]:
     """
     Parses dice notation string like "XdY[+Z]" or "dY[+Z]".
     Returns a tuple (num_dice, sides, modifier) or None if invalid.
