@@ -7,9 +7,36 @@ from .db import get_db
 from .models import User, Character, GameSession
 from .utils import get_logger, format_character_sheet
 from .game_logic import handle_roll_command # Import the specific handler
+from .localization import _, set_language, get_current_language, SUPPORTED_LANGUAGES # Localization
 # from .character_creation import start_character_creation # This will be handled by ConversationHandler entry point
 
 logger = get_logger(__name__)
+
+
+async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Allows the user to change the language."""
+    user = update.effective_user
+    if not context.args:
+        await update.message.reply_text(
+            f"Current language: {get_current_language().upper()}\n"
+            f"To change language, use /lang <lang_code> (e.g., /lang ru).\n"
+            f"Supported languages: {', '.join(SUPPORTED_LANGUAGES)}"
+        )
+        return
+
+    lang_code = context.args[0].lower()
+    if lang_code in SUPPORTED_LANGUAGES:
+        set_language(lang_code) # This sets it globally for now
+        # Ideally, this would be stored per-user in the database
+        # and `set_language` would be called at the beginning of each handler
+        # based on `update.effective_user.language_code` or DB preference.
+        await update.message.reply_text(f"Language changed to: {lang_code.upper()}")
+        logger.info(f"User {user.id} changed language to {lang_code}")
+    else:
+        await update.message.reply_text(
+            f"Unsupported language code: {lang_code}.\n"
+            f"Supported languages: {', '.join(SUPPORTED_LANGUAGES)}"
+        )
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a welcome message when the /start command is issued."""
@@ -25,9 +52,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.info(f"New user {user.id} ({user.first_name}) added to database.")
     db.close()
 
+    # Note: update.effective_user.language_code could be used here for initial language detection
+    # For now, using the globally set language via /lang command or default.
     await update.message.reply_html(
-        rf"Hi {user.mention_html()}! Welcome to The Black Mantis, your friendly RPG Bot. "
-        "Use /startgame in a group chat to begin an adventure!"
+        _("welcome_bot", user_mention=user.mention_html())
     )
 
 async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -36,7 +64,7 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.effective_user
 
     if not chat.type == "group" and not chat.type == "supergroup":
-        await update.message.reply_text("The /startgame command can only be used in group chats.")
+        await update.message.reply_text(_("startgame_group_only"))
         logger.warning(f"/startgame called by {user.id} in non-group chat {chat.id} ({chat.type})")
         return
 
@@ -62,16 +90,14 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         db.commit()
         db.refresh(game_session)
         logger.info(f"New game session created for chat {chat.id}.")
-        await update.message.reply_text(
-            "A new game session for The Black Mantis has started in this group! "
-            "Let the adventure begin!"
-        )
+        await update.message.reply_text(_("new_game_session"))
     elif not game_session.is_active:
         game_session.is_active = True
+        # Potentially localize this scene text too if it's shown to users
         game_session.current_scene = "The adventure in The Black Mantis resumes!"
         db.commit()
         logger.info(f"Game session reactivated for chat {chat.id}.")
-        await update.message.reply_text("The game session for The Black Mantis in this group is now active again!")
+        await update.message.reply_text(_("game_session_resumed"))
     else:
         logger.info(f"Game session already active for chat {chat.id}.")
         # await update.message.reply_text("A game is already active in this group!") # Maybe too noisy
@@ -82,18 +108,16 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if character:
         await update.message.reply_text(
-            f"Welcome back to The Black Mantis, {character.name}! The game is afoot.\n"
-            f"You can view your character with /mycharacter."
+            _("welcome_back_character", character_name=character.name)
         )
     else:
         keyboard = [
-            [InlineKeyboardButton("✨ Create New Character", callback_data="create_character")],
+            [InlineKeyboardButton(_("create_character_button"), callback_data="create_character")],
             # [InlineKeyboardButton("👤 Load Existing Character (Not Implemented)", callback_data="load_character_NYI")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            f"Welcome, {user.first_name}! To join the adventure in The Black Mantis, you need a character. "
-            "Would you like to create one?",
+            _("welcome_new_player", user_first_name=user.first_name),
             reply_markup=reply_markup,
         )
 
@@ -120,18 +144,15 @@ async def my_character_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
         if db_game_session:
              keyboard = [
-                [InlineKeyboardButton("✨ Create New Character", callback_data="create_character")],
+                [InlineKeyboardButton(_("create_character_button"), callback_data="create_character")],
             ]
              reply_markup = InlineKeyboardMarkup(keyboard)
              await update.message.reply_text(
-                "You don't have a character yet for this game session. Would you like to create one?",
+                _("no_character_prompt_creation_group"),
                 reply_markup=reply_markup
             )
         else:
-            await update.message.reply_text(
-                "You don't have a character yet. "
-                "Use /startgame in a group chat where you want to play, then create your character."
-            )
+            await update.message.reply_text(_("no_character_prompt_creation_private"))
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -146,6 +167,7 @@ command_handlers = [
     CommandHandler("startgame", start_game_command),
     CommandHandler("mycharacter", my_character_command),
     CommandHandler("roll", handle_roll_command), # Using the imported handler directly
+    CommandHandler("lang", lang_command), # Added language command
 ]
 
 # CallbackQueryHandlers that are not part of a ConversationHandler can be listed here

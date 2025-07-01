@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from .db import get_db, SessionLocal
 from .models import User, Character, GameSession
 from .utils import get_logger, calculate_initial_stats, format_character_sheet
+from .localization import _, get_current_language # Localization
 from .config import (
-    AVAILABLE_RACES, AVAILABLE_CLASSES, DEFAULT_STARTING_LOCATION,
+    AVAILABLE_RACES, AVAILABLE_CLASSES, DEFAULT_STARTING_LOCATION, # Will be updated for localization
     CHOOSE_NAME, CHOOSE_RACE, CHOOSE_CLASS, CONFIRM_CREATION, CHARACTER_CREATION_COMPLETE
 )
 
@@ -52,8 +53,7 @@ async def start_character_creation(update: Update, context: ContextTypes.DEFAULT
     if existing_character:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
-            text=f"You already have a character: {existing_character.name}.\n"
-                 f"If you want to create a new one, you might need a command to delete the old one first (not yet implemented)."
+            text=_("char_creation_already_exists", character_name=existing_character.name)
         ) # TODO: Add a /deletecharacter command or similar
         return ConversationHandler.END
 
@@ -62,25 +62,29 @@ async def start_character_creation(update: Update, context: ContextTypes.DEFAULT
 
     await update.callback_query.answer() # Answer the button press
     await update.callback_query.edit_message_text( # Edit the message that had the button
-        text="Let's create your character! First, what is your character's name?"
+        text=_("char_creation_start_prompt")
     )
     return CHOOSE_NAME
 
 async def choose_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handles character name input."""
     name = update.message.text.strip()
-    if not name or len(name) < 2 or len(name) > 30:
-        await update.message.reply_text("Please enter a valid name (2-30 characters).")
+    if not name or len(name) < 2 or len(name) > 30: # TODO: Localize length constraints?
+        await update.message.reply_text(_("char_creation_invalid_name"))
         return CHOOSE_NAME
 
     context.user_data['character_info']['name'] = name
     logger.info(f"User {update.effective_user.id} chose name: {name}")
 
+    lang = get_current_language()
     keyboard = [
-        [InlineKeyboardButton(details["name"], callback_data=f"race_{race_key}") for race_key, details in AVAILABLE_RACES.items()]
+        [InlineKeyboardButton(
+            details.get(f"name_{lang}", details.get("name_en", race_key.capitalize())),
+            callback_data=f"race_{race_key}"
+         ) for race_key, details in AVAILABLE_RACES.items()]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(f"Great, {name}! Now, choose your character's race:", reply_markup=reply_markup)
+    await update.message.reply_text(_("char_creation_race_prompt", name=name), reply_markup=reply_markup)
     return CHOOSE_RACE
 
 async def choose_race(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -90,19 +94,24 @@ async def choose_race(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     race_key = query.data.split('_')[1]
 
     if race_key not in AVAILABLE_RACES:
-        await query.edit_message_text("Invalid race selected. Please try again.")
+        await query.edit_message_text(_("char_creation_invalid_race"))
         # Resend race options if needed, or handle error
         return CHOOSE_RACE
 
     context.user_data['character_info']['race'] = race_key
     logger.info(f"User {update.effective_user.id} chose race: {race_key}")
 
+    lang = get_current_language()
+    race_name = AVAILABLE_RACES[race_key].get(f"name_{lang}", AVAILABLE_RACES[race_key].get("name_en", race_key.capitalize()))
     keyboard = [
-        [InlineKeyboardButton(details["name"], callback_data=f"class_{class_key}") for class_key, details in AVAILABLE_CLASSES.items()]
+        [InlineKeyboardButton(
+            details.get(f"name_{lang}", details.get("name_en", class_key.capitalize())),
+            callback_data=f"class_{class_key}"
+         ) for class_key, details in AVAILABLE_CLASSES.items()]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text=f"You chose {AVAILABLE_RACES[race_key]['name']}. Now, select your class:",
+        text=_("char_creation_class_prompt", race_name=race_name),
         reply_markup=reply_markup
     )
     return CHOOSE_CLASS
@@ -114,7 +123,7 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     class_key = query.data.split('_')[1]
 
     if class_key not in AVAILABLE_CLASSES:
-        await query.edit_message_text("Invalid class selected. Please try again.")
+        await query.edit_message_text(_("char_creation_invalid_class"))
         # Resend class options
         return CHOOSE_CLASS
 
@@ -126,26 +135,30 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     stats = calculate_initial_stats(char_info['race'], char_info['class'])
     context.user_data['character_info']['stats'] = stats
 
+    lang = get_current_language()
+    race_name = AVAILABLE_RACES[char_info['race']].get(f"name_{lang}", AVAILABLE_RACES[char_info['race']].get("name_en", char_info['race'].capitalize()))
+    class_name = AVAILABLE_CLASSES[char_info['class']].get(f"name_{lang}", AVAILABLE_CLASSES[char_info['class']].get("name_en", char_info['class'].capitalize()))
+
     summary_text = (
-        f"**Character Summary:**\n"
-        f"Name: {char_info['name']}\n"
-        f"Race: {AVAILABLE_RACES[char_info['race']]['name']}\n"
-        f"Class: {AVAILABLE_CLASSES[char_info['class']]['name']}\n\n"
-        f"**Initial Stats:**\n"
-        f"HP: {stats['max_health']}/{stats['max_health']}\n"
-        f"MP: {stats['max_mana']}/{stats['max_mana']}\n"
-        f"Strength: {stats['strength']}\n"
-        f"Dexterity: {stats['dexterity']}\n"
-        f"Constitution: {stats['constitution']}\n"
-        f"Intelligence: {stats['intelligence']}\n"
-        f"Wisdom: {stats['wisdom']}\n"
-        f"Charisma: {stats['charisma']}\n\n"
-        f"Does this look correct?"
+        f"{_('char_creation_summary_title')}\n"
+        f"{_('char_creation_summary_name')}: {char_info['name']}\n"
+        f"{_('char_creation_summary_race')}: {race_name}\n"
+        f"{_('char_creation_summary_class')}: {class_name}\n\n"
+        f"{_('char_creation_summary_stats_title')}\n"
+        f"{_('hp_label')}: {stats['max_health']}/{stats['max_health']}\n"
+        f"{_('mp_label')}: {stats['max_mana']}/{stats['max_mana']}\n"
+        f"{_('strength_label')}: {stats['strength']}\n"
+        f"{_('dexterity_label')}: {stats['dexterity']}\n"
+        f"{_('constitution_label')}: {stats['constitution']}\n"
+        f"{_('intelligence_label')}: {stats['intelligence']}\n"
+        f"{_('wisdom_label')}: {stats['wisdom']}\n"
+        f"{_('charisma_label')}: {stats['charisma']}\n\n"
+        f"{_('char_creation_confirm_prompt')}"
     )
     keyboard = [
         [
-            InlineKeyboardButton("✅ Looks Good!", callback_data="confirm_creation_yes"),
-            InlineKeyboardButton("❌ Start Over", callback_data="confirm_creation_no"),
+            InlineKeyboardButton(_("char_creation_confirm_yes"), callback_data="confirm_creation_yes"),
+            InlineKeyboardButton(_("char_creation_confirm_no"), callback_data="confirm_creation_no"),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -170,7 +183,7 @@ async def confirm_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             if not db_user:
                 # This case should ideally be prevented earlier.
                 logger.error(f"User {user_id} not found when trying to save character. Aborting.")
-                await query.edit_message_text("Error: User not found. Please try /startgame again.")
+                await query.edit_message_text(_("char_creation_user_not_found_error"))
                 db.close()
                 return ConversationHandler.END
 
@@ -197,16 +210,14 @@ async def confirm_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             db.refresh(new_character)
             logger.info(f"Character {new_character.name} created for user {user_id}.")
 
-            final_message = (
-                f"🎉 Character '{new_character.name}' created successfully! 🎉\n\n"
-                f"{format_character_sheet(new_character)}\n\n"
-                "You are ready to begin your adventure in The Black Mantis! Use /mycharacter to see your sheet again."
-            )
+            # format_character_sheet already uses localization
+            sheet = format_character_sheet(new_character)
+            final_message = _("char_creation_success", character_name=new_character.name, character_sheet=sheet)
             await query.edit_message_text(text=final_message, parse_mode='Markdown')
 
         except Exception as e:
             logger.error(f"Error saving character for user {user_id}: {e}", exc_info=True)
-            await query.edit_message_text("An error occurred while saving your character. Please try again.")
+            await query.edit_message_text(_("char_creation_save_error"))
             # Potentially roll back if partial save, though SQLAlchemy handles this with commit
         finally:
             db.close()
@@ -216,7 +227,7 @@ async def confirm_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     elif query.data == "confirm_creation_no":
         # Restart the conversation by asking for name again
         context.user_data.pop('character_info', None) # Clear previous attempt
-        await query.edit_message_text(text="Okay, let's start over. What is your character's name?")
+        await query.edit_message_text(text=_("char_creation_restart"))
         return CHOOSE_NAME
 
     return CONFIRM_CREATION # Should not happen if buttons are defined correctly
@@ -230,10 +241,10 @@ async def cancel_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     # Check if the cancel was triggered by a command or a callback query
     if update.message:
-        await update.message.reply_text("Character creation cancelled.")
+        await update.message.reply_text(_("char_creation_cancelled"))
     elif update.callback_query:
-        await update.callback_query.answer("Character creation cancelled.")
-        await update.callback_query.edit_message_text("Character creation cancelled.")
+        await update.callback_query.answer(_("char_creation_cancelled"))
+        await update.callback_query.edit_message_text(_("char_creation_cancelled"))
 
     return ConversationHandler.END
 

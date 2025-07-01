@@ -2,6 +2,7 @@
 import random
 import re
 from .utils import get_logger
+from .localization import _ # Localization
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ async def handle_roll_command(update, context) -> None:
     """Handles the /roll command."""
     user = update.effective_user
     if not context.args:
-        await update.message.reply_text("Please specify what dice to roll (e.g., /roll d20, /roll 2d6+3).")
+        await update.message.reply_text(_("roll_usage_prompt"))
         return
 
     dice_notation = "".join(context.args)
@@ -57,8 +58,7 @@ async def handle_roll_command(update, context) -> None:
 
     if not parsed_roll:
         await update.message.reply_text(
-            f"Invalid dice notation: '{dice_notation}'.\n"
-            "Use format like `d20`, `2d6`, or `3d8+5`."
+            _("roll_invalid_notation", dice_notation=dice_notation)
         )
         return
 
@@ -73,11 +73,11 @@ async def handle_roll_command(update, context) -> None:
         modifier_str = f" - {abs(modifier)}"
 
     if num_dice == 1 and not modifier_str: # e.g. d20
-        result_text = f"{user.first_name} rolled {dice_notation}: **{total}**"
+        result_text = _("roll_result_single_no_mod", user_first_name=user.first_name, dice_notation=dice_notation, total=total)
     elif num_dice > 1 and not modifier_str: # e.g. 2d6
-        result_text = f"{user.first_name} rolled {dice_notation}: ({rolls_str}) = **{total}**"
+        result_text = _("roll_result_multi_no_mod", user_first_name=user.first_name, dice_notation=dice_notation, rolls_str=rolls_str, total=total)
     else: # e.g. 2d6+3 or d20-1
-        result_text = f"{user.first_name} rolled {dice_notation}: ({rolls_str}){modifier_str} = **{total}**"
+        result_text = _("roll_result_with_mod", user_first_name=user.first_name, dice_notation=dice_notation, rolls_str=rolls_str, modifier_str=modifier_str, total=total)
 
     await update.message.reply_text(result_text, parse_mode='Markdown')
     logger.info(f"User {user.id} ({user.first_name}) rolled {dice_notation}: {rolls} + {modifier} = {total}")

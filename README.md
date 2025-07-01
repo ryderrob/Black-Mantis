@@ -110,6 +110,13 @@ telegram_rpg_bot/
 *   `/createcharacter` - (Usually triggered via `/startgame`) Starts the character creation process.
 *   `/mycharacter` - Displays your current character's sheet.
 *   `/roll <XdY[+Z]>` - Rolls dice (e.g., `/roll d20`, `/roll 2d6+3`).
+*   `/lang <language_code>` - Changes the bot's language (e.g., `/lang ru` for Russian, `/lang en` for English). Currently, this is a global setting for the bot instance.
+
+## Language Support
+
+*   The bot currently supports English (en) and Russian (ru).
+*   The default language is English.
+*   You can switch the language using the `/lang` command.
 
 Further instructions will be provided by the bot.
 ```

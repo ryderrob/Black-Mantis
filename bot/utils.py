@@ -12,31 +12,45 @@ def get_logger(name: str):
     """Returns a logger instance for a given module name."""
     return logging.getLogger(name)
 
+from .localization import _, get_current_language # For translations
+from .config import AVAILABLE_RACES, AVAILABLE_CLASSES # To get localized race/class names
 
 def format_character_sheet(character) -> str:
-    """Formats character information into a readable string."""
+    """Formats character information into a readable string using localization."""
     if not character:
-        return "No character found."
+        return _("no_character_yet") # Assuming this key exists or will be added
+
+    # Get localized race and class names
+    # This assumes that character.race and character._class store the keys (e.g., "human", "warrior")
+    # And that config.py will be updated to provide localized names.
+    lang = get_current_language()
+
+    race_details = AVAILABLE_RACES.get(character.race.lower(), {})
+    localized_race_name = race_details.get(f"name_{lang}", race_details.get("name_en", character.race.capitalize()))
+
+    class_details = AVAILABLE_CLASSES.get(character._class.lower(), {})
+    localized_class_name = class_details.get(f"name_{lang}", class_details.get("name_en", character._class.capitalize()))
+
 
     sheet = (
-        f"📜 **Character Sheet: {character.name}** 📜\n"
+        f"{_('character_sheet_title', character_name=character.name)}\n"
         f"------------------------------------\n"
-        f"**Race:** {character.race.capitalize()}\n"
-        f"**Class:** {character._class.capitalize()}\n"
+        f"**{_('race_label')}:** {localized_race_name}\n"
+        f"**{_('class_label')}:** {localized_class_name}\n"
         f"------------------------------------\n"
-        f"**HP:** {character.health}/{character.max_health}\n"
-        f"**MP:** {character.mana}/{character.max_mana}\n"
+        f"**{_('hp_label')}:** {character.health}/{character.max_health}\n"
+        f"**{_('mp_label')}:** {character.mana}/{character.max_mana}\n"
         f"------------------------------------\n"
-        f"**Attributes:**\n"
-        f"  💪 Strength: {character.strength}\n"
-        f"  🤸 Dexterity: {character.dexterity}\n"
-        f"  맷 Constitution: {character.constitution}\n"
-        f"  🧠 Intelligence: {character.intelligence}\n"
-        f"  🤔 Wisdom: {character.wisdom}\n"
-        f"  🗣️ Charisma: {character.charisma}\n"
+        f"**{_('attributes_label')}:**\n"
+        f"  {_('strength_label')}: {character.strength}\n"
+        f"  {_('dexterity_label')}: {character.dexterity}\n"
+        f"  {_('constitution_label')}: {character.constitution}\n"
+        f"  {_('intelligence_label')}: {character.intelligence}\n"
+        f"  {_('wisdom_label')}: {character.wisdom}\n"
+        f"  {_('charisma_label')}: {character.charisma}\n"
         f"------------------------------------\n"
-        f"**Location:** {character.location}\n"
-        # f"**Inventory:** {character.inventory if character.inventory else 'Empty'}\n" # Add when inventory is implemented
+        f"**{_('location_label')}:** {character.location}\n"
+        # f"**{_('inventory_label')}:** {character.inventory if character.inventory else _('inventory_empty')}\n"
     )
     return sheet
 

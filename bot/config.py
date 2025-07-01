@@ -1,20 +1,49 @@
 # bot/config.py
 
 # Initial game configuration
-# This can be expanded or moved to a database/JSON file later for more dynamic configuration.
+
+# Localized names and descriptions for races and classes.
+# Keys for names: name_en, name_ru
+# Keys for descriptions: desc_en, desc_ru
+# The functions in character_creation.py and utils.py will use get_current_language()
+# to pick the appropriate field.
 
 AVAILABLE_RACES = {
-    "human": {"name": "Human", "description": "Versatile and adaptable."},
-    "elf": {"name": "Elf", "description": "Graceful and attuned to nature."},
-    "dwarf": {"name": "Dwarf", "description": "Sturdy and skilled craftsmen."},
-    "orc": {"name": "Orc", "description": "Strong and formidable warriors."},
+    "human": {
+        "name_en": "Human", "desc_en": "Versatile and adaptable.",
+        "name_ru": "Человек", "desc_ru": "Универсальны и адаптивны."
+    },
+    "elf": {
+        "name_en": "Elf", "desc_en": "Graceful and attuned to nature.",
+        "name_ru": "Эльф", "desc_ru": "Изящны и созвучны природе."
+    },
+    "dwarf": {
+        "name_en": "Dwarf", "desc_en": "Sturdy and skilled craftsmen.",
+        "name_ru": "Дворф", "desc_ru": "Крепкие и искусные ремесленники."
+    },
+    "orc": {
+        "name_en": "Orc", "desc_en": "Strong and formidable warriors.",
+        "name_ru": "Орк", "desc_ru": "Сильные и грозные воины."
+    },
 }
 
 AVAILABLE_CLASSES = {
-    "warrior": {"name": "Warrior", "description": "Master of combat, strong and resilient."},
-    "mage": {"name": "Mage", "description": "Wielder of arcane energies."},
-    "rogue": {"name": "Rogue", "description": "Stealthy and skilled in subterfuge."},
-    "cleric": {"name": "Cleric", "description": "Divine agent, healer, and protector."},
+    "warrior": {
+        "name_en": "Warrior", "desc_en": "Master of combat, strong and resilient.",
+        "name_ru": "Воин", "desc_ru": "Мастер боя, сильный и выносливый."
+    },
+    "mage": {
+        "name_en": "Mage", "desc_en": "Wielder of arcane energies.",
+        "name_ru": "Маг", "desc_ru": "Повелитель тайных энергий."
+    },
+    "rogue": {
+        "name_en": "Rogue", "desc_en": "Stealthy and skilled in subterfuge.",
+        "name_ru": "Разбойник", "desc_ru": "Скрытный и искусный в уловках."
+    },
+    "cleric": {
+        "name_en": "Cleric", "desc_en": "Divine agent, healer, and protector.",
+        "name_ru": "Клирик", "desc_ru": "Божественный агент, целитель и защитник."
+    },
 }
 
 # Base stats - these can be adjusted by race/class modifiers
