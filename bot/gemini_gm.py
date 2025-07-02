@@ -158,8 +158,7 @@ async def generate_gm_response(chat_id: int, acting_user_id: int, player_action_
             history = history[-(MAX_HISTORY_TURNS * 2):]
 
         logger.debug(f"Gemini History for chat {chat_id}: {history}")
-        newline_char = '\n'
-        logger.debug(f"Gemini System Prompt for chat {chat_id}: {newline_char.join(system_prompt_parts)}")
+        logger.debug(f"Gemini System Prompt for chat {chat_id}: {'\n'.join(system_prompt_parts)}")
 
 
         response = await model_for_request.generate_content_async(history) # Pass the history

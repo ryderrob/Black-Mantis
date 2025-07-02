@@ -108,17 +108,33 @@ telegram_rpg_bot/
 └── README.md                   # This file
 ```
 
-## How to Play (Initial Commands)
+## How to Play
 
-*   `/startgame` - Initiates a new game session in the group chat or helps you join an existing one.
-*   `/createcharacter` - (Usually triggered via `/startgame`) Starts the character creation process.
-*   `/mycharacter` - Displays your current character's sheet.
-*   `/roll <XdY[+Z]>` - Rolls dice (e.g., `/roll d20`, `/roll 2d6+3`).
-*   `/lang <language_code>` - Changes the bot's language (e.g., `/lang ru` for Russian, `/lang en` for English). Currently, this is a global setting for the bot instance.
-*   `/explore` - Asks the AI Game Master to describe the current scene or location.
+### Available Commands
 
-**AI Game Master (GM) Interaction:**
-*   When a game is active (`/startgame`), typing regular text messages (not commands) in the group chat will be interpreted as player actions. The AI GM (powered by Google Gemini) will respond to these actions, narrating the story and consequences.
+Here's a list of commands you can use with The Black Mantis RPG Bot:
+
+*   **`/start`**: Displays a welcome message from the bot.
+*   **`/startgame`**:
+    *   Initiates a new game session in the current group chat if one isn't active.
+    *   Reactivates an inactive game session.
+    *   Prompts you to create a character if you don't have one for the session.
+    *   *Must be used in a group chat.*
+*   **`/mycharacter`**: Shows your current character's sheet, including stats, race, class, etc. If you don't have a character, it will guide you to create one (usually via `/startgame`).
+*   **`/roll <XdY[+Z]>`**: Rolls dice based on standard dice notation.
+    *   Examples: `/roll d20`, `/roll 2d6`, `/roll 1d10+3`, `/roll 3d8-1`.
+*   **`/lang <language_code>`**: Changes the bot's display language.
+    *   Examples: `/lang en` (for English), `/lang ru` (for Russian).
+    *   *Currently, this setting is global for the bot instance.*
+*   **`/explore`**: (Requires Gemini API Key) Asks the AI Game Master to provide a detailed description of the current scene or location. This helps you understand your surroundings better.
+    *   *Only works in an active game session where you have a character.*
+*   **`/cancel`**: Used during multi-step processes like character creation to cancel the current operation.
+
+### AI Game Master (GM) Interaction
+
+*   When a game is active (initiated by `/startgame`) and you have a character, simply typing a message in the group chat (that is not a command) will be interpreted as your character's action.
+*   The AI Game Master, powered by Google Gemini, will read your action, consider the game context (current scene, other characters, recent events), and narrate the outcome and the evolving story.
+*   The GM will often end its narration with a question or a prompt for players to decide what to do next.
 
 ## AI Game Master (Gemini Integration)
 

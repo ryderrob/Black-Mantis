@@ -1,6 +1,6 @@
 # bot/character_creation.py
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters, CallbackQueryHandler, CommandHandler
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters, CallbackQueryHandler
 from sqlalchemy.orm import Session
 
 from .db import get_db, SessionLocal
@@ -11,11 +11,11 @@ from .config import (
     AVAILABLE_RACES, AVAILABLE_CLASSES, DEFAULT_STARTING_LOCATION, # Will be updated for localization
     CHOOSE_NAME, CHOOSE_RACE, CHOOSE_CLASS, CONFIRM_CREATION, CHARACTER_CREATION_COMPLETE
 )
-from typing import Optional
+
 logger = get_logger(__name__)
 
 # --- Helper Functions ---
-def get_user_from_context(context: ContextTypes.DEFAULT_TYPE, telegram_user_id: int) -> Optional[User]:
+def get_user_from_context(context: ContextTypes.DEFAULT_TYPE, telegram_user_id: int) -> User | None:
     """Fetches or creates a User DB entry."""
     db: Session = next(get_db())
     user = db.query(User).filter(User.id == telegram_user_id).first()

@@ -147,54 +147,83 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Handles the /startgame command in a group chat."""
     chat = update.effective_chat
     user = update.effective_user
+    logger.info(f"--- /startgame command initiated by user {user.id} ({user.username or user.first_name}) in chat {chat.id} (type: {chat.type}, title: {chat.title}) ---")
 
     if not chat.type == "group" and not chat.type == "supergroup":
+        logger.warning(f"/startgame: Not a group or supergroup. Chat type: {chat.type}.")
         await update.message.reply_text(_("startgame_group_only"))
-        logger.warning(f"/startgame called by {user.id} in non-group chat {chat.id} ({chat.type})")
         return
 
-    logger.info(f"/startgame called by {user.id} in group chat {chat.id} ({chat.title})")
+    logger.info(f"/startgame: Processing for group chat {chat.id}.")
     db: Session = next(get_db())
 
-    # Ensure the user who typed /startgame is in the User table
-    db_user = db.query(User).filter(User.id == user.id).first()
-    if not db_user:
-        new_user = User(id=user.id, username=user.username or user.first_name)
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user) # Ensure we have the latest from DB if concurrent access occurs
-        db_user = new_user
-        logger.info(f"User {user.id} added to DB via /startgame command.")
+    try:
+        # Ensure the user who typed /startgame is in the User table
+        db_user = db.query(User).filter(User.id == user.id).first()
+        if not db_user:
+            logger.info(f"/startgame: User {user.id} not found in DB. Creating new user.")
+            new_user_obj = User(id=user.id, username=user.username or user.first_name)
+            db.add(new_user_obj)
+            db.commit()
+            db.refresh(new_user_obj)
+            db_user = new_user_obj # Use the newly created user object
+            logger.info(f"/startgame: User {user.id} ({db_user.username}) created and added to DB.")
+        else:
+            logger.info(f"/startgame: User {user.id} ({db_user.username}) found in DB.")
+
+        game_session = db.query(GameSession).filter(GameSession.chat_id == chat.id).first()
+
+        if not game_session:
+            logger.info(f"/startgame: No existing game session found for chat {chat.id}. Creating new session.")
+            # Ensure current_scene is also localized if it's a default user-facing message
+            game_session_obj = GameSession(chat_id=chat.id, is_active=True, current_scene=_("new_game_session")) # Using a key here
+            db.add(game_session_obj)
+            db.commit()
+            db.refresh(game_session_obj)
+            game_session = game_session_obj # Use the newly created game_session object
+            logger.info(f"/startgame: New game session {game_session.id} created for chat {chat.id}, is_active: {game_session.is_active}, scene: '{game_session.current_scene}'.")
+            await update.message.reply_text(_("new_game_session")) # This key should be the generic "new game started"
+        elif not game_session.is_active:
+            logger.info(f"/startgame: Existing game session {game_session.id} found for chat {chat.id}, but it's inactive. Reactivating.")
+            game_session.is_active = True
+            game_session.current_scene = _("game_session_resumed") # Using a key here
+            db.commit()
+            logger.info(f"/startgame: Game session {game_session.id} reactivated. Scene: '{game_session.current_scene}'.")
+            await update.message.reply_text(_("game_session_resumed")) # This key for "resumed"
+        else:
+            logger.info(f"/startgame: Game session {game_session.id} for chat {chat.id} is already active. Scene: '{game_session.current_scene}'.")
+            # Optionally, send a message indicating game is already active, if desired.
+            # await update.message.reply_text(_("game_already_active", game_name="The Black Mantis"))
 
 
-    game_session = db.query(GameSession).filter(GameSession.chat_id == chat.id).first()
+        # Check if the user has a character
+        logger.info(f"/startgame: Checking for character for user {user.id} ({db_user.username}).")
+        character = db.query(Character).filter(Character.user_id == user.id).first()
 
-    if not game_session:
-        game_session = GameSession(chat_id=chat.id, is_active=True, current_scene="A new adventure begins in this group!")
-        db.add(game_session)
-        db.commit()
-        db.refresh(game_session)
-        logger.info(f"New game session created for chat {chat.id}.")
-        await update.message.reply_text(_("new_game_session"))
-    elif not game_session.is_active:
-        game_session.is_active = True
-        # Potentially localize this scene text too if it's shown to users
-        game_session.current_scene = "The adventure in The Black Mantis resumes!"
-        db.commit()
-        logger.info(f"Game session reactivated for chat {chat.id}.")
-        await update.message.reply_text(_("game_session_resumed"))
-    else:
-        logger.info(f"Game session already active for chat {chat.id}.")
-        # await update.message.reply_text("A game is already active in this group!") # Maybe too noisy
+        if character:
+            logger.info(f"/startgame: Character '{character.name}' found for user {user.id}.")
+            await update.message.reply_text(
+                _("welcome_back_character", character_name=character.name)
+            )
+        else:
+            logger.info(f"/startgame: No character found for user {user.id}. Prompting for creation.")
+            keyboard = [
+                [InlineKeyboardButton(_("create_character_button"), callback_data="create_character")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                _("welcome_new_player", user_first_name=user.first_name),
+                reply_markup=reply_markup,
+            )
+        logger.info(f"--- /startgame command finished for user {user.id} in chat {chat.id} ---")
+    except Exception as e:
+        logger.error(f"CRITICAL ERROR in /startgame for chat {chat.id}, user {user.id}: {e}", exc_info=True)
+        await update.message.reply_text("An unexpected error occurred while starting the game. Please try again later or contact the admin.")
+    finally:
+        db.close()
+        logger.debug(f"/startgame: Database session closed for chat {chat.id}, user {user.id}.")
 
-    # Check if the user has a character
-    character = db.query(Character).filter(Character.user_id == user.id).first()
-    db.close()
-
-    if character:
-        await update.message.reply_text(
-            _("welcome_back_character", character_name=character.name)
-        )
+async def my_character_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         keyboard = [
             [InlineKeyboardButton(_("create_character_button"), callback_data="create_character")],
